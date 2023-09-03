@@ -1,0 +1,107 @@
+use crate::ast::ast::{Statement, Program, Expression, Literals, Infix};
+use crate::object::object::*;
+
+pub struct Eval {}
+
+impl Eval {
+    pub fn new() -> Self {
+        return Eval{}
+    }
+    pub fn eval_program(&mut self, program: Program) {
+        for s in program {
+            println!("{:?}", self.eval_stmt(s));
+        }
+    }
+
+    pub fn eval_stmt(&mut self, stmt: Statement) -> Object {
+        match stmt {
+            Statement::ExpressionStmt(exp) => {
+                return self.eval_exp(exp) 
+            }
+            _=> {
+                return Object::None
+            }
+        }
+    }
+
+    fn eval_exp(&mut self, e: Expression) -> Object {
+        match e {
+            Expression::Literal(l) => {
+                match l {
+                    Literals::Int(i) => {
+                        return Object::Int(i)
+                    }
+                    Literals::Bool(b) => {
+                        return Object::Bool(b)
+                    }
+                    _ => {
+                        return Object::None
+                    }
+                }
+
+            }
+            Expression::Infix(o, left, right) => {
+                return self.eval_infix(o, *left, *right)
+            }
+            _ => {
+                return Object::None
+            }
+        }
+    }
+
+    fn eval_infix(&mut self, o: Infix, left: Expression,  right: Expression) -> Object {
+        let left = self.eval_exp(left);
+        let right = self.eval_exp(right);
+        match (left, right) {
+            (Object::Int(l), Object::Int(r)) => {
+                return self.calculate(o, n1, n2);
+            }
+            _ => {}
+        }
+        }
+        return Object::None
+    }
+    fn calculate(&mut self, o: Infix, n1: i64, n2: i64) -> Object {
+        match o {
+            Infix::Plus  => {
+                return Object::Int(n1 + n2)
+            }
+
+            Infix::Minus => {
+                return Object::Int(n1 - n2)
+            }
+
+            Infix::Star => {
+                return Object::Int(n1 * n2)
+            }
+
+            Infix::Slash => {
+                return Object::Float(n1 as f64/ n2 as f64)
+            }
+            _ => {
+                return self.bool_calculation(o, n1, n2)
+            }
+
+        }
+    }
+
+    fn bool_calculation<T: PartialEq + PartialOrd>(&mut self, o: Infix, v1:T, v2:T) -> Object {
+        match o {
+            Infix::LT => {
+                Object::Bool(v1 < v2)
+            }
+            Infix::GT => {
+                Object::Bool(v1 > v2)
+            }
+            Infix::EQ => {
+                Object::Bool(v1 == v2)
+            }
+            Infix::NotEQ => {
+                Object::Bool(v1 != v2)
+            }
+            _ => {
+                Object::None
+            }
+        }
+    }
+}

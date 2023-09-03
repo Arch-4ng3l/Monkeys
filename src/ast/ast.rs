@@ -2,7 +2,9 @@ use std::fmt;
 
 pub type BlockStmt = Vec<Statement>;
 
-#[derive(Debug, PartialEq, Eq)]
+pub type Program = BlockStmt;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ident {
     pub literal: String,
 }
@@ -14,7 +16,7 @@ impl fmt::Display for Ident {
 
 
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Prefix {
     Minus, 
     None
@@ -26,7 +28,7 @@ impl fmt::Display for Prefix {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Infix {
     Plus, 
     Minus,
@@ -62,7 +64,7 @@ impl fmt::Display for Infix {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expression {
     Ident(Ident),
     Literal(Literals),
@@ -72,7 +74,15 @@ pub enum Expression {
         Box<Expression>,
         BlockStmt,
         Option<BlockStmt>,
+    ),
+    Function(
+        Vec<Ident>, 
+        BlockStmt,
+    ),
 
+    FunctionCall(
+        Vec<Expression>,
+        Box<Expression>,
     ),
     None,
 }
@@ -127,7 +137,7 @@ impl fmt::Display for Expression{
 }
 
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
     Var(Ident, Expression),
     Return(Expression),
@@ -149,10 +159,11 @@ impl fmt::Display for Statement {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Literals {
     Int(i64),
     Bool(bool),
+    String(String)
 }
 impl fmt::Display for Literals {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -162,6 +173,9 @@ impl fmt::Display for Literals {
             }
             Literals::Bool(b) => {
                 write!(f, "{}", b)
+            }
+            Literals::String(s) => {
+                write!(f, "{}", s)
             }
         }
     }

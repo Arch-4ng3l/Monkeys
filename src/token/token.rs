@@ -6,6 +6,9 @@ pub enum Token {
     Ident(String),
     Int(i64),
     Bool(bool),
+    String(String),
+
+    Comma,
 
     Plus,
     Minus,
@@ -16,12 +19,12 @@ pub enum Token {
     GT, 
     LT,
 
-	LPAREN, 
-	RPAREN,   
-	LBRACE,  
-	RBRACE,  
-	LBRACKET,
-	RBRACKET,
+    LPAREN,
+    RPAREN,   
+    LBRACE,  
+    RBRACE,  
+    LBRACKET,
+    RBRACKET,
 
     If, 
     Else,

@@ -1,9 +1,6 @@
 use crate::lexer::lexer::Lexer;
 use crate::token::token::Token;
 use crate::ast::ast::*;
-//use crate::Lexer;
-
-
 
 pub struct Parser {
     cur_token: Token,
@@ -14,102 +11,103 @@ pub struct Parser {
 impl Parser {
     pub fn new(l: Lexer) -> Self{
 
-        let mut p = Parser{
+        let mut parser = Parser{
             cur_token: Token::None,
             next_token: Token::None,
             lexer: l,
         };
-        p.next();
-        p.next();
+        parser.next();
+        parser.next();
 
-        return p
+        parser
     }
 
-    pub fn parse_program(&mut self) -> Vec<Statement>{
-        let mut v: Vec<Statement> = Vec::new();
+    pub fn parse_program(&mut self) -> Program{
+        let mut parsed: Vec<Statement> = Vec::new();
 
         while self.cur_token != Token::EOF {
             let stmt = self.parse_statement();        
-            v.push(stmt);
-            println!("New");
+            parsed.push(stmt);
             self.next();
         }
 
-        return v;
+        parsed
     }
-    fn parse_block(&mut self) -> Vec<Statement> {
-        let mut v = Vec::new();
+    fn parse_block(&mut self) -> BlockStmt {
+        let mut parsed = Vec::new();
         if self.cur_token != Token::LBRACE {
-            return v;
+            return parsed
         }
         self.next();
         while self.cur_token != Token::RBRACE {
-            v.push(self.parse_statement()); 
+            parsed.push(self.parse_statement()); 
             self.next();
         }
 
-        v
+        parsed
     }
 
     fn parse_statement(&mut self) -> Statement {
-        match self.cur_token {
+        return match self.cur_token {
             Token::Var => {
-                return self.parse_var();
+                self.parse_var()
+            }
+            Token::Return => {
+                self.next();
+                Statement::Return(self.parse_expression(Precedences::Lowest))
             }
             _ => {
-                return Statement::ExpressionStmt(self.parse_expression(Precedences::Lowest));
+                Statement::ExpressionStmt(self.parse_expression(Precedences::Lowest))
             }
         }
     }
     fn parse_var(&mut self) -> Statement {
         let token = self.next_token.clone();
-        match  token {
+        return match  token {
             Token::Ident(s) => {
                 let ident = s;
                 self.next();
                 if self.next_token != Token::Assign {
-                    return Statement::None;
+                    return Statement::None
                 }
                 self.next();
                 self.next();
                 let val = self.parse_expression(Precedences::Lowest);
                 
-                return Statement::Var(Ident{literal: ident.to_string()}, val)
+                Statement::Var(Ident{literal: ident.to_string()}, val)
             }
             _ => {
+            Statement::None
 
             }
-
         }
-        return Statement::None
+
     }
 
     fn parse_expression(&mut self, precedence: Precedences) -> Expression {
-        println!("Expression Current Token: {:?}" ,self.cur_token);
 
         let mut left = self.parse_prefix();
-
         if left == Expression::None  {
-            match self.cur_token {
-                Token::Int(i) => { left = Expression::Literal(Literals::Int(i)) }
-                Token::Bool(b) => { left = Expression::Literal(Literals::Bool(b)) }
+            match &self.cur_token {
+                Token::Int(i) => { left = Expression::Literal(Literals::Int(*i)) }
+                Token::Bool(b) => { left = Expression::Literal(Literals::Bool(*b)) }
+                Token::String(s) => { left = Expression::Literal(Literals::String(s.clone())) }
+                Token::Ident(i) => { left = Expression::Ident(Ident{literal: i.clone()}) }
                 _ => { }
             }
 
 
         }
-        
         while precedence < Self::token_to_precedence(self.next_token.clone()) {
-            println!("Cur: {:?} | Next Precidence{:?}", precedence,Self::token_to_precedence(self.next_token.clone()));
             self.next();
             if self.cur_token == Token::EOF || self.cur_token == Token::EOF{
                 break;
             }
 
-                left = self.parse_infix(left);
-            }
+            left = self.parse_infix(left);
+        }
             
-        return left;
+        left
     }
 
 
@@ -127,6 +125,9 @@ impl Parser {
             Token::LT | Token::GT => {
                 Precedences::LessGreater
             }
+            Token::LPAREN => {
+                Precedences::Call
+            }
             _ => {
                 Precedences::Lowest
             }
@@ -138,6 +139,7 @@ impl Parser {
         self.cur_token = self.next_token.clone();
         self.next_token = self.lexer.next_token();
     }
+
     fn parse_prefix(&mut self) -> Expression {
 
         match self.cur_token {
@@ -166,12 +168,25 @@ impl Parser {
                     else_block = None;
                 }
 
-
-
                 Expression::If(
                     Box::new(cond),
                     if_block,
                     else_block
+                )
+            }
+            Token::Func => {
+                self.next();
+
+                let params = self.parse_function_params();
+
+                self.next();
+                self.next();
+
+                let body = self.parse_block();
+
+                Expression::Function(
+                    params, 
+                    body,
                 )
             }
 
@@ -187,8 +202,13 @@ impl Parser {
     }
 
     fn parse_infix(&mut self, exp: Expression) -> Expression {
-        println!("infix");
         return match self.cur_token {
+            Token::LPAREN => {
+                let args = self.parse_expression_list();
+
+                Expression::FunctionCall(args, Box::new(exp))
+
+            }
             Token::Plus => {
                 self.next();
                 Expression::Infix(
@@ -242,7 +262,45 @@ impl Parser {
             }
         }
     }
+    fn parse_function_params(&mut self) -> Vec<Ident> {
+        let mut idents = Vec::new();
+        
+        if self.next_token == Token::RPAREN {
+            return idents
+ 
+        }
+        self.next();
+        while self.next_token == Token::Comma {
+            match &self.cur_token {
+                Token::Ident(i) => {
+                    idents.push(Ident{literal: i.to_string()});
+                    self.next();
+                    self.next();
+                }
+                _ => {}
+            }
 
+        }
+        idents
+        
+    }
+
+    fn parse_expression_list(&mut self) -> Vec<Expression> {
+        let mut args = Vec::new();
+        if self.cur_token != Token::LPAREN {
+            return args;
+        }
+        self.next();
+        args.push(self.parse_expression(Precedences::Lowest));
+
+        while self.next_token == Token::Comma {
+            self.next();
+            self.next();
+            args.push(self.parse_expression(Precedences::Lowest));
+        }
+
+        args
+    }
 
 }
 

@@ -8,22 +8,23 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(input: String) -> Lexer {
-        let mut l = Lexer{
+    pub fn new(mut input: String) -> Lexer {
+        input.push('\0');
+        let mut lexer = Lexer{
             pos: 0, 
             next_pos: 0,
             ch: 0, 
             input: input.into_bytes(),
         };
-        l.read_char();
-        return l;
+        lexer.read_char();
+
+        lexer
 
     }
 
     pub fn read_char(&mut self) {
         if self.next_pos < self.input.len() {
             self.ch = self.input[self.next_pos];
-
             self.pos = self.next_pos;
             self.next_pos += 1;
         } else {
@@ -32,93 +33,94 @@ impl Lexer {
     }
 
     pub fn next_token(&mut self) -> Token {
-        let tok: Token;
         self.skip_whitespace();
-        match self.ch {
+        let tok = match self.ch {
             b'=' => {
-                tok = Token::Assign
+                Token::Assign
             }
             b'+' => {
-                tok = Token::Plus
+                Token::Plus
             }
             b'-' => {
-                tok = Token::Minus
+                Token::Minus
             }
             b'*' => {
-                tok = Token::Star
+                Token::Star
             }
             b'/' => {
-                tok = Token::Slash
+                Token::Slash
             }
             b'>' => {
-                tok = Token::GT
+                Token::GT
             }
             b'<' => {
-                tok = Token::LT
+                Token::LT
             }
             b'\n' => {
-                tok = Token::NewLine
+                Token::NewLine
             }
             b'(' => {
-                tok = Token::LPAREN
+                Token::LPAREN
             }
             b')' => {
-                tok = Token::RPAREN
+                Token::RPAREN
             }
             b'{' => {
-                tok = Token::LBRACE
+                Token::LBRACE
             }
             b'}' => {
-                tok = Token::RBRACE
+                Token::RBRACE
+            }
+            b',' => {
+                Token::Comma
+            }
+            b'"' => {
+                let val = self.read_str();
+                Token::String(val)
             }
 
             0 => {
-                tok = Token::EOF
+                Token::EOF
             }
             _ => {
                 if is_char(self.ch) {
                     let val = self.read_ident();
                     match val.as_str() {
                         "func" => {
-                            tok = Token::Func
+                            Token::Func
                         }
                         "var" => {
-
-                            tok = Token::Var
+                            Token::Var
                         }
                         "true" => {
-                            tok = Token::Bool(true)
+                            Token::Bool(true)
                         }
                         "false" => {
-                            tok = Token::Bool(false)
+                            Token::Bool(false)
                         }
                         "return" => {
-                            tok = Token::Return
+                            Token::Return
                         }
                         "if" => {
-                            println!("if");
-                            tok = Token::If
+                            Token::If
                         }
                         "else" => {
-                            tok = Token::Else
+                            Token::Else
                         }
                         _ => {
-                            tok = Token::Ident(val)
+                            Token::Ident(val)
                         }
                     }
                 } else if is_digit(self.ch) {
-                    let val = self.read_number();
-
-                    tok = Token::Int(val);
+                    Token::Int(self.read_number())
                 } else {
-                    tok = Token::Illegal
+                    Token::Illegal
                 }
             }
         };
-
+        
         self.read_char();
-
-        return tok;
+        tok
     }
 
     fn skip_whitespace(&mut self) {
@@ -140,8 +142,9 @@ impl Lexer {
             str = str + &(self.ch as char).to_string();
             self.read_char(); 
         }
+        self.back();
 
-        return str;
+        str
     }
     fn read_number(&mut self) -> i64 {
         let mut str = String::new(); 
@@ -150,10 +153,34 @@ impl Lexer {
 
             self.read_char(); 
         }
-        return str.parse().unwrap();
+        self.back();
+
+        str.parse().unwrap()
+    }
+    fn read_str(&mut self) -> String {
+        let mut str = String::new();
+        self.read_char();
+        while self.ch != b'"' {
+            str = str + &(self.ch as char).to_string();
+            self.read_char();
+        }
+        self.back();
+
+        str
+    }
+
+    fn back(&mut self) {
+        if self.next_pos > 0 {
+            self.pos -= 1;
+            self.next_pos -= 1;
+            self.ch = self.input[self.pos];
+        } else {
+            self.ch = 0;
+        }
     }
 
 }
+
 
 fn is_char(ch: u8) -> bool {
     return b'a' <= ch && ch <= b'z' || b'A' <= ch && ch <= b'Z';
