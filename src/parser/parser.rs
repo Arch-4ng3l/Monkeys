@@ -144,32 +144,34 @@ impl Parser {
             Token::If => {
                 self.next();
                 if self.cur_token != Token::LPAREN {
-                    println!("{:?}", self.cur_token);
                     return Expression::None
                 }
                 self.next();
                 let cond = self.parse_expression(Precedences::Lowest);
-                //self.next();
+
                 if self.next_token != Token::RPAREN {
-                    println!("BLOCK CURRENT {:?}", self.next_token);
                     return Expression::None
                 }
                 self.next();
+
                 self.next();
-                println!("BLOCK");
-                let block = self.parse_block();
-                println!("Block {:?}", block);
-                println!("Block Current Token {:?}", self.cur_token);
+                let if_block = self.parse_block();
+                self.next();
+
+                let else_block;
+                if self.cur_token == Token::Else {
+                    self.next();
+                    else_block = Some(self.parse_block());
+                } else {
+                    else_block = None;
+                }
+
 
 
                 Expression::If(
                     Box::new(cond),
-                    block,
-                    if self.cur_token == Token::Else {
-                        Some(self.parse_block())
-                    } else {
-                        None
-                    }
+                    if_block,
+                    else_block
                 )
             }
 
