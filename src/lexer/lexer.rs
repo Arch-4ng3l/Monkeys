@@ -50,9 +50,28 @@ impl Lexer {
             b'/' => {
                 tok = Token::Slash
             }
+            b'>' => {
+                tok = Token::GT
+            }
+            b'<' => {
+                tok = Token::LT
+            }
             b'\n' => {
                 tok = Token::NewLine
             }
+            b'(' => {
+                tok = Token::LPAREN
+            }
+            b')' => {
+                tok = Token::RPAREN
+            }
+            b'{' => {
+                tok = Token::LBRACE
+            }
+            b'}' => {
+                tok = Token::RBRACE
+            }
+
             0 => {
                 tok = Token::EOF
             }
@@ -75,6 +94,13 @@ impl Lexer {
                         }
                         "return" => {
                             tok = Token::Return
+                        }
+                        "if" => {
+                            println!("if");
+                            tok = Token::If
+                        }
+                        "else" => {
+                            tok = Token::Else
                         }
                         _ => {
                             tok = Token::Ident(val)

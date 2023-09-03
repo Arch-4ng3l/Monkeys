@@ -1,13 +1,13 @@
-pub mod lexer;
-use crate::lexer::lexer::*;
-pub mod parser;
-use crate::parser::parser::*;
-pub mod token;
-pub mod ast;
+use monkey::lexer::lexer::Lexer;
+use monkey::parser::parser::Parser;
 
 fn main() {
-    let lexer = Lexer::new("var x = -19 * 2 + 39 * 3".to_string());
-    
+    //let input = "if ( 10 < 10 ) { \n var x = -10 * 29 }".to_string();
+    let lexer = Lexer::new("-10 * 2".to_string());
+        
     let mut parser = Parser::new(lexer);
-    parser.parse_program();
+    let stmt = parser.parse_program();
+    for i in stmt {
+        println!("I : ====== {:?}", i);
+    }
 }

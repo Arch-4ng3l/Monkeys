@@ -20,6 +20,7 @@ impl Parser {
             lexer: l,
         };
         p.next();
+        p.next();
 
         return p
     }
@@ -29,12 +30,25 @@ impl Parser {
 
         while self.cur_token != Token::EOF {
             let stmt = self.parse_statement();        
-            println!("Statement: {}", stmt);
             v.push(stmt);
+            println!("New");
             self.next();
         }
 
         return v;
+    }
+    fn parse_block(&mut self) -> Vec<Statement> {
+        let mut v = Vec::new();
+        if self.cur_token != Token::LBRACE {
+            return v;
+        }
+        self.next();
+        while self.cur_token != Token::RBRACE {
+            v.push(self.parse_statement()); 
+            self.next();
+        }
+
+        v
     }
 
     fn parse_statement(&mut self) -> Statement {
@@ -43,7 +57,7 @@ impl Parser {
                 return self.parse_var();
             }
             _ => {
-                return Statement::None;
+                return Statement::ExpressionStmt(self.parse_expression(Precedences::Lowest));
             }
         }
     }
@@ -58,9 +72,7 @@ impl Parser {
                 }
                 self.next();
                 self.next();
-                println!("Var Cur Token: {:?}", self.cur_token);
                 let val = self.parse_expression(Precedences::Lowest);
-                println!("Var Value: {:?}", val);
                 
                 return Statement::Var(Ident{literal: ident.to_string()}, val)
             }
@@ -75,79 +87,50 @@ impl Parser {
     fn parse_expression(&mut self, precedence: Precedences) -> Expression {
         println!("Expression Current Token: {:?}" ,self.cur_token);
 
-        let mut left = Expression::None;
-        match self.cur_token {
-            Token::Minus => {
-                self.next();
-                let exp =  self.parse_expression(Precedences::Prefix);
-                left = Expression::Prefix(Prefix::Minus, Box::new(exp));
-                println!("Done {:?}", left);
+        let mut left = self.parse_prefix();
 
-                //self.next();
+        if left == Expression::None  {
+            match self.cur_token {
+                Token::Int(i) => { left = Expression::Literal(Literals::Int(i)) }
+                Token::Bool(b) => { left = Expression::Literal(Literals::Bool(b)) }
+                _ => { }
             }
-            _ => {
-            }
+
+
         }
-
-        match self.cur_token {
-            Token::Int(i) => {
-                match left {
-                    Expression::None =>  {
-                        left = Expression::Literal(
-                            Literals::Int(
-                                i
-                            )
-                        );
-                    }
-                    _ => {
-
-                    }
-
-                }
-                while precedence < Self::token_to_precedence(self.next_token.clone()) {
-                    println!("Cur: {:?} | Next Precidence{:?}", precedence,Self::token_to_precedence(self.next_token.clone()));
-                    self.next();
-                    if self.cur_token == Token::EOF || self.cur_token == Token::EOF{
-                        break;
-                    }
-
-                    left = self.get_infix_fn(left);
-                    //self.next();
-                }
-                return left;
-
-                
-            }
-            Token::Bool (b) => {
-                return Expression::Literal(
-                    Literals::Bool(
-                        b 
-                    )
-                )
+        
+        while precedence < Self::token_to_precedence(self.next_token.clone()) {
+            println!("Cur: {:?} | Next Precidence{:?}", precedence,Self::token_to_precedence(self.next_token.clone()));
+            self.next();
+            if self.cur_token == Token::EOF || self.cur_token == Token::EOF{
+                break;
             }
 
-
-            _ => {
+                left = self.parse_infix(left);
             }
-        }
-
-        println!("Token : {:?}", self.cur_token);
-        return Expression::None;
+            
+        return left;
     }
 
+
     fn token_to_precedence(token: Token) -> Precedences {
-        let precedence = match token {
+        return match token {
             Token::Minus | Token::Plus => {
                 Precedences::Sum
             }
             Token::Star | Token::Slash => {
                 Precedences::Product
             }
+            Token::EQ | Token::NotEQ => {
+                Precedences::Equals
+            }
+            Token::LT | Token::GT => {
+                Precedences::LessGreater
+            }
             _ => {
                 Precedences::Lowest
             }
         };
-        return precedence
     }
 
     
@@ -155,48 +138,109 @@ impl Parser {
         self.cur_token = self.next_token.clone();
         self.next_token = self.lexer.next_token();
     }
+    fn parse_prefix(&mut self) -> Expression {
 
-    fn get_infix_fn(&mut self, exp: Expression) -> Expression {
-        println!("Token: {:?}, Expression: {:?}", self.cur_token, exp);
         match self.cur_token {
+            Token::If => {
+                self.next();
+                if self.cur_token != Token::LPAREN {
+                    println!("{:?}", self.cur_token);
+                    return Expression::None
+                }
+                self.next();
+                let cond = self.parse_expression(Precedences::Lowest);
+                //self.next();
+                if self.next_token != Token::RPAREN {
+                    println!("BLOCK CURRENT {:?}", self.next_token);
+                    return Expression::None
+                }
+                self.next();
+                self.next();
+                println!("BLOCK");
+                let block = self.parse_block();
+                println!("Block {:?}", block);
+                println!("Block Current Token {:?}", self.cur_token);
+
+
+                Expression::If(
+                    Box::new(cond),
+                    block,
+                    if self.cur_token == Token::Else {
+                        Some(self.parse_block())
+                    } else {
+                        None
+                    }
+                )
+            }
+
+            Token::Minus => {
+                self.next();
+                let exp =  self.parse_expression(Precedences::Prefix);
+                return Expression::Prefix(Prefix::Minus, Box::new(exp));
+            }
+            _ => {
+                return Expression::None
+            }
+        }
+    }
+
+    fn parse_infix(&mut self, exp: Expression) -> Expression {
+        println!("infix");
+        return match self.cur_token {
             Token::Plus => {
                 self.next();
-                return Expression::Infix(Infix::Plus,
+                Expression::Infix(
+                    Infix::Plus,
                     Box::new(exp),
                     Box::new(self.parse_expression(Precedences::Sum))
-                );
+                )
             }
             Token::Minus => {
                 self.next();
-                return Expression::Infix(Infix::Minus, Box::new(exp), Box::new(self.parse_expression(Precedences::Sum)));
+                Expression::Infix(
+                    Infix::Minus,
+                    Box::new(exp),
+                    Box::new(self.parse_expression(Precedences::Sum))
+                )
             }
             Token::Star => {
                 self.next();
-                return Expression::Infix(Infix::Star,
+                Expression::Infix(
+                    Infix::Star,
                     Box::new(exp),
                     Box::new(self.parse_expression(Precedences::Product))
-                );
+                )
             }
             Token::Slash => {
                 self.next();
-                return Expression::Infix(Infix::Slash, Box::new(exp), Box::new(self.parse_expression(Precedences::Product)));
+                Expression::Infix(
+                    Infix::Slash,
+                    Box::new(exp),
+                    Box::new(self.parse_expression(Precedences::Product))
+                )
+            }
+            Token::GT => {
+                self.next(); 
+                Expression::Infix(
+                    Infix::GT,
+                    Box::new(exp),
+                    Box::new(self.parse_expression(Precedences::LessGreater))
+                )
+            }
+            Token::LT => {
+                self.next();
+                Expression::Infix(
+                    Infix::LT,
+                    Box::new(exp),
+                    Box::new(self.parse_expression(Precedences::LessGreater))
+                )
             }
             _ => {
-                return Expression::None;
+                Expression::None
             }
         }
     }
 
-    fn parse_prefix(&mut self) -> Expression{
-        match self.cur_token {
-            Token::Minus => {
-                return Expression::Prefix(Prefix::Minus, Box::new(self.parse_expression(Precedences::Prefix)));
-            }
-            _ => {
-                return Expression::None;
-            }
-        }
-    }
 
 }
 

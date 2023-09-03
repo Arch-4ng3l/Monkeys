@@ -11,7 +11,20 @@ pub enum Token {
     Minus,
     Star,
     Slash,
-    
+    EQ, 
+    NotEQ,
+    GT, 
+    LT,
+
+	LPAREN, 
+	RPAREN,   
+	LBRACE,  
+	RBRACE,  
+	LBRACKET,
+	RBRACKET,
+
+    If, 
+    Else,
     Func,
     Var,
     Return,

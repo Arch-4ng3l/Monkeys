@@ -1,7 +1,8 @@
 use std::fmt;
 
+pub type BlockStmt = Vec<Statement>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Ident {
     pub literal: String,
 }
@@ -13,7 +14,7 @@ impl fmt::Display for Ident {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Prefix {
     Minus, 
     None
@@ -25,12 +26,16 @@ impl fmt::Display for Prefix {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Infix {
     Plus, 
     Minus,
     Star,
     Slash,
+    GT, 
+    LT,
+    EQ, 
+    NotEQ,
 
     None
 }
@@ -57,12 +62,18 @@ impl fmt::Display for Infix {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Expression {
     Ident(Ident),
     Literal(Literals),
     Prefix(Prefix, Box<Expression>),
     Infix(Infix, Box<Expression>, Box<Expression>),
+    If(
+        Box<Expression>,
+        BlockStmt,
+        Option<BlockStmt>,
+
+    ),
     None,
 }
 
@@ -82,6 +93,32 @@ impl fmt::Display for Expression{
             Expression::Literal(l) => {
                 write!(f, "{}", l)
             }
+            Expression::If(cond, i, e) => {
+                match e {
+                    Some(exp) =>{
+                        write!(f, "if ({}) ", cond);
+                        for s in i {
+                            write!(f, "{}", s);
+                        }
+                        write!(f, "else ");
+                        for s in exp {
+                            write!(f, "{}", s);
+                        }
+                        write!(f, "")
+
+
+
+                    }
+                    None => {
+                        write!(f, "if ({}) ", cond);
+                        for s in i {
+                            write!(f, "{}", s);
+                        }
+                        write!(f, "")
+
+                    }
+                }
+            }
             _ => {
                 write!(f, "")
             }
@@ -90,7 +127,7 @@ impl fmt::Display for Expression{
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Statement {
     Var(Ident, Expression),
     Return(Expression),
@@ -112,7 +149,7 @@ impl fmt::Display for Statement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Literals {
     Int(i64),
     Bool(bool),
