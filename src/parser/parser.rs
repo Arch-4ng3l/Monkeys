@@ -35,9 +35,11 @@ impl Parser {
     }
     fn parse_block(&mut self) -> BlockStmt {
         let mut parsed = Vec::new();
+
         if self.cur_token != Token::LBRACE {
             return parsed
         }
+
         self.next();
         while self.cur_token != Token::RBRACE {
             parsed.push(self.parse_statement()); 
@@ -85,7 +87,6 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedences) -> Expression {
-
         let mut left = self.parse_prefix();
         if left == Expression::None  {
             match &self.cur_token {
@@ -95,9 +96,8 @@ impl Parser {
                 Token::Ident(i) => { left = Expression::Ident(Ident{literal: i.clone()}) }
                 _ => { }
             }
-
-
         }
+
         while precedence < Self::token_to_precedence(self.next_token.clone()) {
             self.next();
             if self.cur_token == Token::EOF || self.cur_token == Token::EOF{
@@ -127,6 +127,9 @@ impl Parser {
             }
             Token::LPAREN => {
                 Precedences::Call
+            }
+            Token::LBRACKET => {
+                Precedences::Index
             }
             _ => {
                 Precedences::Lowest
@@ -176,10 +179,8 @@ impl Parser {
             }
             Token::Func => {
                 self.next();
-
                 let params = self.parse_function_params();
 
-                self.next();
                 self.next();
 
                 let body = self.parse_block();
@@ -188,6 +189,21 @@ impl Parser {
                     params, 
                     body,
                 )
+            }
+
+            Token::LBRACKET => {
+                self.next();
+                println!("bracket");
+                let mut exps = Vec::new();
+                while self.cur_token != Token::RBRACKET {
+                    exps.push(self.parse_expression(Precedences::Lowest));
+                    self.next();
+                    if self.cur_token == Token::Comma {
+                        self.next();
+                    }
+                }
+
+                Expression::Literal(Literals::Arr(exps))
             }
 
             Token::Minus => {
@@ -208,6 +224,12 @@ impl Parser {
 
                 Expression::FunctionCall(args, Box::new(exp))
 
+            }
+            Token::LBRACKET => {
+                self.next();
+                let ind = self.parse_expression(Precedences::Index);
+                self.next();
+                Expression::Index(Box::new(exp), Box::new(ind))
             }
             Token::Plus => {
                 self.next();
@@ -264,12 +286,23 @@ impl Parser {
     }
     fn parse_function_params(&mut self) -> Vec<Ident> {
         let mut idents = Vec::new();
-        
-        if self.next_token == Token::RPAREN {
-            return idents
- 
-        }
+    
         self.next();
+        match &self.cur_token {
+            Token::Ident(i) => {
+                idents.push(Ident { literal: i.to_string() });
+                self.next();
+            }
+            _ => {
+                return idents
+            }
+        }
+        if self.cur_token == Token::RPAREN {
+            return idents
+        }
+
+        self.next();
+
         while self.next_token == Token::Comma {
             match &self.cur_token {
                 Token::Ident(i) => {

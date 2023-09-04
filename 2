@@ -133,23 +133,7 @@ impl Eval {
 
             }
             Expression::Index(left, ind) => {
-                let left = self.eval_exp(*left);
-                let arr = match left {
-                    Object::Arr(arr) => {
-                        arr
-                    }
-                    _ => {
-                        return Self::new_error("Indexed Object is not of type Array")
-                    }
-                };
-                match self.eval_exp(*ind){
-                    Object::Int(i) => {
-                        arr[i as usize].clone()
-                    }
-                    _ => {
-                        Self::new_error("Need String to Index an Array")
-                    }
-                }
+                Object::None
             }
             Expression::Prefix(p, right) => {
                 self.eval_prefix(p, *right)

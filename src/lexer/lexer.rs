@@ -1,3 +1,5 @@
+use std::{thread, time::Duration};
+
 use crate::token::token::Token;
 
 pub struct Lexer {
@@ -73,6 +75,12 @@ impl Lexer {
             }
             b',' => {
                 Token::Comma
+            }
+            b'[' => {
+                Token::LBRACKET
+            }
+            b']' => {
+                Token::RBRACKET
             }
             b'"' => {
                 let val = self.read_str();
@@ -164,8 +172,6 @@ impl Lexer {
             str = str + &(self.ch as char).to_string();
             self.read_char();
         }
-        self.back();
-
         str
     }
 

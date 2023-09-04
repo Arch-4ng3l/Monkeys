@@ -1,52 +1,43 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, cell::RefCell , rc::Rc};
 
 use super::object::Object;
 
 #[derive(Clone)]
 pub struct Env {
-    map: HashMap<String, Object<'static>>,
-    outer: Option<Box<Env>>,
+    map: HashMap<String, Object>,
+    outer: Option<Rc<RefCell<Env>>>,
 }
 impl Env {
-    pub fn new(outer: Option<Env>) -> Self{
-        let outer = match outer {
-            Some(e) => {
-                Some(Box::new(e))
-            }
-            None => {
-                None
-            }
-        };
+    pub fn new() -> Self{
         return Env {
             map: HashMap::new(),
-            outer,
+            outer: None,
         }
     }
-    pub fn read_ident(&self, s: String) -> Option<&Object> {
-        let obj = self.map.get(&s.clone());
-        if obj.is_some() {
-            return obj
+    pub fn new_with_outer(env: Rc<RefCell<Env>>) -> Self {
+        return Env {
+            map: HashMap::new(),
+            outer: Some(env)
         }
-        let mut outer = &self.outer;
-
-        loop {
-            match outer {
-                Some(b) =>  {
-                    let temp = b.read_ident(s.clone());
-                    if temp.is_some() {
-                        return Some(temp.unwrap())
+    }
+    pub fn read_ident(&self, s: &str) -> Option<Object> {
+        match self.map.get(&s.to_string()) {
+            Some(obj) => {
+                Some(obj.clone())
+            }
+            None => {
+                match self.outer {
+                    Some(ref outer) => {
+                        outer.borrow_mut().read_ident(s)
                     }
-
-                    outer = &b.outer;
-
-                }
-                None => {
-                    return None;
+                    None => {
+                        None
+                    }
                 }
             }
         }
     }
-    pub fn add_ident(&mut self, val: Object<'static>, key: String) {
+    pub fn add_ident(&mut self, val: Object, key: String) {
         self.map.insert(key, val);
     }
 }

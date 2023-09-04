@@ -1,22 +1,26 @@
 use core::fmt;
+use std::{rc::Rc, cell::RefCell};
 
 use crate::ast::ast::{BlockStmt, Ident};
 
 use super::env::Env;
 
 #[derive(Clone)]
-pub enum Object<'a > {
+pub enum Object {
     String(String),
     Int(i64),
     Float(f64),
     Bool(bool),
-    Return(Box<Object<'a>>),
+    Arr(Vec<Object>),
+    Return(Box<Object>),
 
-    Function(Vec<Ident>, BlockStmt, Box<&'a Env>),
+    Function(Vec<Ident>, BlockStmt, Rc<RefCell<Env>>),
+
+    Error(String),
     None,
 }
 
-impl fmt::Display for Object<'_> {
+impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Object::Int(i) => {
@@ -30,6 +34,18 @@ impl fmt::Display for Object<'_> {
             }
             Object::Float(fl) => {
                 write!(f, "{}", fl)
+            }
+            Object::Function(params, block, _) => {
+                write!(f, "func({:?}) {:?}", params, block)
+            }
+            Object::Arr(arr) => {
+                let objs = arr
+                    .iter()
+                    .map(|obj| format!("{}", obj))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+                    .to_string();
+                write!(f, "[{}]", objs)
             }
             _ =>{
                 write!(f, "")

@@ -84,6 +84,11 @@ pub enum Expression {
         Vec<Expression>,
         Box<Expression>,
     ),
+    Index(
+        Box<Expression>,
+        Box<Expression>,
+    ),
+
     None,
 }
 
@@ -163,7 +168,8 @@ impl fmt::Display for Statement {
 pub enum Literals {
     Int(i64),
     Bool(bool),
-    String(String)
+    String(String),
+    Arr(Vec<Expression>)
 }
 impl fmt::Display for Literals {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -176,6 +182,15 @@ impl fmt::Display for Literals {
             }
             Literals::String(s) => {
                 write!(f, "{}", s)
+            }
+            Literals::Arr(arr) => {
+                let str = arr
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+                    .to_string();
+                write!(f, "{}", str)
             }
         }
     }
