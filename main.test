@@ -1,0 +1,12 @@
+var x = 2
+var y = 3
+var z = 1
+
+var f = func (a, b, c) {
+    return a + b + c
+}
+
+
+var a = f(x, y, z)
+
+print(a)

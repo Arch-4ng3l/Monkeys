@@ -209,10 +209,10 @@ impl Parser {
             Token::Minus => {
                 self.next();
                 let exp =  self.parse_expression(Precedences::Prefix);
-                return Expression::Prefix(Prefix::Minus, Box::new(exp));
+                Expression::Prefix(Prefix::Minus, Box::new(exp))
             }
             _ => {
-                return Expression::None
+                Expression::None
             }
         }
     }
@@ -301,10 +301,8 @@ impl Parser {
             return idents
         }
 
-        self.next();
-
-        while self.next_token == Token::Comma {
-            match &self.cur_token {
+        while self.cur_token == Token::Comma {
+            match &self.next_token {
                 Token::Ident(i) => {
                     idents.push(Ident{literal: i.to_string()});
                     self.next();

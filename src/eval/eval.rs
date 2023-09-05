@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
@@ -6,14 +7,18 @@ use crate::ast::ast::{Statement, Program, Expression, Literals, Infix, Prefix, B
 use crate::object::env::Env;
 use crate::object::object::*;
 
+use super::builtin;
+
 pub struct Eval {
-    env: Rc<RefCell<Env>>
+    env: Rc<RefCell<Env>>,
+    builtin: HashMap<String, Object>
 }
 
 impl Eval {
     pub fn new(env: Rc<RefCell<Env>>) -> Self {
         return Eval{
-            env
+            env,
+            builtin: builtin::new_builtin_functions()
         }
     }
     pub fn eval_program(&mut self, program: Program) {
@@ -26,7 +31,6 @@ impl Eval {
                     break;
                 }
                 _ => {
-                    println!("Out = {}", eval);
                 }
             }
         }
@@ -72,7 +76,7 @@ impl Eval {
     fn eval_exp(&mut self, e: Expression) -> Object {
         match e {
             Expression::Function(i, block) => {
-                return Object::Function(i, block, self.env.clone())
+                Object::Function(i, block, self.env.clone())
             }
             Expression::FunctionCall(args, exp) => {
                 let function = self.eval_exp(*exp);
@@ -102,12 +106,20 @@ impl Eval {
                 Object::None
             }
             Expression::Ident(i) => {
-                let val = self.env.borrow().read_ident(&i.literal);
-                if val.is_some() {
-                    return val
-                        .unwrap()
-                        .clone();
+                match self.env.borrow().read_ident(&i.literal) {
+                    Some(val) => {
+                        return val.clone()
+                    }
+                    None => {}
+
                 }
+                match self.builtin.get(&i.literal) {
+                    Some(val) => {
+                        return val.clone()
+                    }
+                    None => {}
+                }
+
                 Self::new_error(format!("{} not found in the current scope", &i.literal))
             }
             Expression::Literal(l) => {
@@ -218,6 +230,13 @@ impl Eval {
                 self.env = current_env;
 
                 obj
+            }
+            Object::Builtin(num, func) => {
+                if args.len() as i64 != num {
+                    return Self::new_error(format!("Got {} Arguments but Want {}", args.len(), num))
+                }
+
+                func(args)
             }
             _ => {
                 Self::new_error("Not A Valid Function Object")

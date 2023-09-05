@@ -109,30 +109,32 @@ impl fmt::Display for Expression{
                 write!(f, "{}", l)
             }
             Expression::If(cond, i, e) => {
-                match e {
-                    Some(exp) =>{
-                        write!(f, "if ({}) ", cond);
-                        for s in i {
-                            write!(f, "{}", s);
-                        }
-                        write!(f, "else ");
-                        for s in exp {
-                            write!(f, "{}", s);
-                        }
-                        write!(f, "")
+                let mut str = String::new();
+                str = str + &format!("If({})", *cond);
 
+                str = str + &i
+                    .iter()
+                    .map(|exp| format!("{}", exp))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+                    .to_string();
 
-
-                    }
-                    None => {
-                        write!(f, "if ({}) ", cond);
-                        for s in i {
-                            write!(f, "{}", s);
-                        }
-                        write!(f, "")
-
-                    }
+                if e.is_some() {
+                    str = str + "else";
+                    str = str + &e
+                        .clone()
+                        .unwrap()
+                        .iter()
+                        .map(|exp| format!("{}", exp))
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                        .to_string();
                 }
+
+                write!(f, "{}", str)
+
+
+
             }
             _ => {
                 write!(f, "")

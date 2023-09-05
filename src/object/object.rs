@@ -5,6 +5,8 @@ use crate::ast::ast::{BlockStmt, Ident};
 
 use super::env::Env;
 
+pub type BuiltinFunction = fn(Vec<Object>) -> Object;
+
 #[derive(Clone)]
 pub enum Object {
     String(String),
@@ -15,6 +17,7 @@ pub enum Object {
     Return(Box<Object>),
 
     Function(Vec<Ident>, BlockStmt, Rc<RefCell<Env>>),
+    Builtin(i64, BuiltinFunction),
 
     Error(String),
     None,

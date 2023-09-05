@@ -1,5 +1,3 @@
-use std::{thread, time::Duration};
-
 use crate::token::token::Token;
 
 pub struct Lexer {

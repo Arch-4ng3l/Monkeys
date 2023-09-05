@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::{env, fs};
 use std::rc::Rc;
 
 use monkey::lexer::lexer::Lexer;
@@ -7,7 +8,26 @@ use monkey::parser::parser::Parser;
 use monkey::eval::eval::Eval;
 
 fn main() {
-    let input = "var f = [1, 2, 3] \n f[1]".to_string();
+    
+    let args:Vec<String> = env::args().collect();
+    let input;
+    if args.len() >= 2 {
+        let filename = &args[1];
+        let file_val = fs::read_to_string(filename);
+        match file_val {
+            Ok(s) => {
+                input = s;
+            }
+            Err(e) => {
+                println!("Error: {}", e);
+                return 
+            }
+        }
+    } else {
+        println!("No File To Read");
+        return 
+    }
+
     let lexer = Lexer::new(input);
         
     let mut parser = Parser::new(lexer);
